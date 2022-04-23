@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/static/css/main.e6c13ad2.css",
-    "main.js": "/static/js/main.0fd3854f.js",
-    "index.html": "/index.html",
-    "main.e6c13ad2.css.map": "/static/css/main.e6c13ad2.css.map",
-    "main.0fd3854f.js.map": "/static/js/main.0fd3854f.js.map"
+    "main.css": "/atamano/jsonpathly-demo/static/css/main.e6c13ad2.css",
+    "main.js": "/atamano/jsonpathly-demo/static/js/main.397dc580.js",
+    "index.html": "/atamano/jsonpathly-demo/index.html",
+    "main.e6c13ad2.css.map": "/atamano/jsonpathly-demo/static/css/main.e6c13ad2.css.map",
+    "main.397dc580.js.map": "/atamano/jsonpathly-demo/static/js/main.397dc580.js.map"
   },
   "entrypoints": [
     "static/css/main.e6c13ad2.css",
-    "static/js/main.0fd3854f.js"
+    "static/js/main.397dc580.js"
   ]
 }
