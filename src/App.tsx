@@ -9,7 +9,7 @@ import 'ace-builds/src-noconflict/ext-language_tools';
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-monokai';
 import { query } from 'jsonpathly';
-import * as React from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import AceEditor from 'react-ace';
 
 const theme = createTheme({
@@ -57,19 +57,19 @@ const DEFAULT_INPUT = {
 };
 
 export default function App() {
-  const [result, setResult] = React.useState('');
-  const [input, setInput] = React.useState(JSON.stringify(DEFAULT_INPUT, null, 2));
-  const [jsonPath, setJsonPath] = React.useState(`$.store.book[?(@.price>20 || @.category == 'reference')]`);
+  const [result, setResult] = useState('');
+  const [input, setInput] = useState(JSON.stringify(DEFAULT_INPUT, null, 2));
+  const [jsonPath, setJsonPath] = useState(`$.store.book[?(@.price>20 || @.category == 'reference')]`);
 
   const onInputChange = (text: string) => {
     setInput(text);
   };
 
-  const onJsonPathChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const onJsonPathChange = (event: ChangeEvent<HTMLInputElement>) => {
     setJsonPath(event.target.value);
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     try {
       const res = query(JSON.parse(input), jsonPath);
       setResult(JSON.stringify(res, null, 2));
