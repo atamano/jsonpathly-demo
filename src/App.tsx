@@ -181,7 +181,7 @@ export default function App() {
           break;
         }
         case TABS.JSONPathPlus: {
-          const res = jsonpathPlus.JSONPath({ path: jsonPath, json: parsedInput, wrap: isArray });
+          const res = jsonpathPlus.JSONPath({ path: jsonPath, json: parsedInput, wrap: isArray, preventEval: true });
           setResult(JSON.stringify(res, null, 2));
           break;
         }
@@ -203,11 +203,11 @@ export default function App() {
         <Typography mt={2} variant="h4">
           JsonPath Evaluator
         </Typography>
-        <Stack my={3}>
+        <Stack mt={3}>
           <TextField label="JSON Path" onChange={onJsonPathChange} value={jsonPath} />
         </Stack>
-        <Stack my={3}>
-          <Grid container component="main" spacing={4} sx={{ height: '80vh' }}>
+        <Box my={1}>
+          <Grid container component="main" spacing={4}>
             <Grid item xs={12} md={6}>
               <Box height={45}>
                 <FormGroup>
@@ -230,22 +230,20 @@ export default function App() {
               <AceEditor width="100%" mode="json" theme="monokai" value={result} />
             </Grid>
           </Grid>
-        </Stack>
-        <Stack>
-          <Typography my={4} variant="h4">
-            JsonPath Examples
-          </Typography>
-        </Stack>
-        <Typography my={2}>Click on the path to change the editor</Typography>
-        <JSONPathTable
-          onClick={(value) => {
-            setJsonPath(value);
-            window.scrollTo(0, 0);
-          }}
-          headers={['JSONPath', 'Description']}
-          rows={EXAMPLES}
-        />
-        <Stack my={5}>
+        </Box>
+        <Box my={3}>
+          <Typography variant="h4">JsonPath Examples</Typography>
+          <Typography my={2}>Click on the path to change the editor</Typography>
+          <JSONPathTable
+            onClick={(value) => {
+              setJsonPath(value);
+              window.scrollTo(0, 0);
+            }}
+            headers={['JSONPath', 'Description']}
+            rows={EXAMPLES}
+          />
+        </Box>
+        <Box my={3}>
           <Button onClick={() => setCollapse(!collapse)}>View syntax</Button>
           <Collapse in={!collapse} timeout="auto" unmountOnExit>
             <Typography my={2} variant="h4">
@@ -253,7 +251,7 @@ export default function App() {
             </Typography>
             <JSONPathTable headers={['JSONPath', 'Description']} rows={PATH_ITEMS} />
           </Collapse>
-        </Stack>
+        </Box>
       </Container>
     </ThemeProvider>
   );
