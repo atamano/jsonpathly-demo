@@ -93,7 +93,7 @@ const PATH_ITEMS = [
   ],
   ['[start:end:step]', 'array slice operator borrowed from ES4.'],
   ['?()', 'applies a filter (script) expression.'],
-  ['()', 'script expression, using the underlying script engine.'],
+  ['()', 'script expression, using the underlying script engine. (not handled by Jsonpathly for security reasons)'],
 ];
 
 const EXAMPLES = [
@@ -152,11 +152,11 @@ enum TABS {
 
 export default function App() {
   const [collapse, setCollapse] = useState(true);
-  const [isArray, setIsArray] = useState(false);
+  const [isArray, setIsArray] = useState(true);
   const [tab, setTab] = useState(TABS.JSONPathly);
   const [result, setResult] = useState('');
   const [input, setInput] = useState(JSON.stringify(DEFAULT_INPUT, null, 2));
-  const [jsonPath, setJsonPath] = useState(`$.store.book[?(@.price>20 || @.category == 'reference')]`);
+  const [jsonPath, setJsonPath] = useState(`$..book[?(@.price <= $['expensive'])]`);
 
   const onInputChange = (text: string) => {
     setInput(text);
@@ -246,7 +246,7 @@ export default function App() {
           rows={EXAMPLES}
         />
         <Stack my={5}>
-          <Button onClick={() => setCollapse(!collapse)}>View styntax</Button>
+          <Button onClick={() => setCollapse(!collapse)}>View syntax</Button>
           <Collapse in={!collapse} timeout="auto" unmountOnExit>
             <Typography my={2} variant="h4">
               JsonPath Syntax
