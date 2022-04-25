@@ -1,12 +1,19 @@
 import {
+  Box,
+  Button,
+  Checkbox,
   Container,
+  FormControlLabel,
+  FormGroup,
   Paper,
+  Tab,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Tabs,
   Typography,
 } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -14,12 +21,16 @@ import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import TextField from '@mui/material/TextField';
+import { Collapse } from '@mui/material';
 import 'ace-builds/src-noconflict/ace';
 import 'ace-builds/src-noconflict/ext-language_tools';
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-monokai';
-import { query } from 'jsonpathly';
-import { ChangeEvent, useEffect, useState } from 'react';
+import * as jsonpathly from 'jsonpathly';
+import * as jsonpathPlus from 'jsonpath-plus';
+import * as jsonpath from 'jsonpath';
+
+import { SyntheticEvent, ChangeEvent, useEffect, useState } from 'react';
 import AceEditor from 'react-ace';
 
 const theme = createTheme({
@@ -133,7 +144,16 @@ const JSONPathTable = ({
   </TableContainer>
 );
 
+enum TABS {
+  JSONPathly,
+  JSONPathPlus,
+  JSONPath,
+}
+
 export default function App() {
+  const [collapse, setCollapse] = useState(true);
+  const [isArray, setIsArray] = useState(false);
+  const [tab, setTab] = useState(TABS.JSONPathly);
   const [result, setResult] = useState('');
   const [input, setInput] = useState(JSON.stringify(DEFAULT_INPUT, null, 2));
   const [jsonPath, setJsonPath] = useState(`$.store.book[?(@.price>20 || @.category == 'reference')]`);
@@ -148,35 +168,74 @@ export default function App() {
 
   useEffect(() => {
     try {
-      const res = query(JSON.parse(input), jsonPath);
-      setResult(JSON.stringify(res, null, 2));
+      const parsedInput = JSON.parse(input);
+      switch (tab) {
+        case TABS.JSONPathly: {
+          const res = jsonpathly.query(parsedInput, jsonPath, { returnArray: isArray });
+          setResult(JSON.stringify(res, null, 2));
+          break;
+        }
+        case TABS.JSONPath: {
+          const res = jsonpath.query(parsedInput, jsonPath);
+          setResult(JSON.stringify(res, null, 2));
+          break;
+        }
+        case TABS.JSONPathPlus: {
+          const res = jsonpathPlus.JSONPath({ path: jsonPath, json: parsedInput, wrap: isArray });
+          setResult(JSON.stringify(res, null, 2));
+          break;
+        }
+      }
     } catch (e) {
       setResult('');
       console.log(e);
     }
-  }, [input, jsonPath]);
+  }, [tab, isArray, input, jsonPath]);
+
+  const onTabChange = (_event: SyntheticEvent, newValue: number) => {
+    setTab(newValue);
+  };
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Container>
         <Typography mt={2} variant="h4">
-          JsonPathly Editor
+          JsonPath Evaluator
         </Typography>
         <Stack my={3}>
           <TextField label="JSON Path" onChange={onJsonPathChange} value={jsonPath} />
         </Stack>
-        <Grid container component="main" spacing={4} sx={{ height: '80vh' }}>
-          <Grid item xs={12} md={6}>
-            <AceEditor width="100%" mode="json" theme="monokai" onChange={onInputChange} value={input} />
+        <Stack my={3}>
+          <Grid container component="main" spacing={4} sx={{ height: '80vh' }}>
+            <Grid item xs={12} md={6}>
+              <Box height={45}>
+                <FormGroup>
+                  <FormControlLabel
+                    control={<Checkbox checked={isArray} onClick={() => setIsArray(!isArray)} />}
+                    label="Always use array (Jsonpathly + JSonpath plus)"
+                  />
+                </FormGroup>
+              </Box>
+              <AceEditor width="100%" mode="json" theme="monokai" onChange={onInputChange} value={input} />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Box>
+                <Tabs value={tab} onChange={onTabChange} aria-label="basic tabs example">
+                  <Tab label="JsonPathly" onClick={() => setTab(TABS.JSONPathly)} />
+                  <Tab label="JsonPath Plus" onClick={() => setTab(TABS.JSONPathPlus)} />
+                  <Tab label="JsonPath (dchester)" onClick={() => setTab(TABS.JSONPath)} />
+                </Tabs>
+              </Box>
+              <AceEditor width="100%" mode="json" theme="monokai" value={result} />
+            </Grid>
           </Grid>
-          <Grid item xs={12} md={6}>
-            <AceEditor width="100%" mode="json" theme="monokai" value={result} />
-          </Grid>
-        </Grid>
-        <Typography my={2} variant="h4">
-          JsonPath Examples
-        </Typography>
+        </Stack>
+        <Stack>
+          <Typography my={4} variant="h4">
+            JsonPath Examples
+          </Typography>
+        </Stack>
         <Typography my={2}>Click on the path to change the editor</Typography>
         <JSONPathTable
           onClick={(value) => {
@@ -186,10 +245,15 @@ export default function App() {
           headers={['JSONPath', 'Description']}
           rows={EXAMPLES}
         />
-        <Typography my={2} variant="h4">
-          JsonPath Syntax
-        </Typography>
-        <JSONPathTable headers={['JSONPath', 'Description']} rows={PATH_ITEMS} />
+        <Stack my={5}>
+          <Button onClick={() => setCollapse(!collapse)}>View styntax</Button>
+          <Collapse in={!collapse} timeout="auto" unmountOnExit>
+            <Typography my={2} variant="h4">
+              JsonPath Syntax
+            </Typography>
+            <JSONPathTable headers={['JSONPath', 'Description']} rows={PATH_ITEMS} />
+          </Collapse>
+        </Stack>
       </Container>
     </ThemeProvider>
   );
