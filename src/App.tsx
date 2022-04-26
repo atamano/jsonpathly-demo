@@ -181,7 +181,7 @@ export default function App() {
           break;
         }
         case TABS.JSONPathPlus: {
-          const res = jsonpathPlus.JSONPath({ path: jsonPath, json: parsedInput, wrap: isArray, preventEval: true });
+          const res = jsonpathPlus.JSONPath({ path: jsonPath, json: parsedInput, wrap: isArray });
           setResult(JSON.stringify(res, null, 2));
           break;
         }
