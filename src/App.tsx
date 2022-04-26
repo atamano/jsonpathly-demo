@@ -25,7 +25,7 @@ import { Collapse } from '@mui/material';
 import 'ace-builds/src-noconflict/ace';
 import 'ace-builds/src-noconflict/ext-language_tools';
 import 'ace-builds/src-noconflict/mode-json';
-import 'ace-builds/src-noconflict/theme-monokai';
+import 'ace-builds/src-noconflict/theme-one_dark';
 import * as jsonpathly from 'jsonpathly';
 import * as jsonpathPlus from 'jsonpath-plus';
 import * as jsonpath from 'jsonpath';
@@ -217,7 +217,7 @@ export default function App() {
                   />
                 </FormGroup>
               </Box>
-              <AceEditor width="100%" mode="json" theme="monokai" onChange={onInputChange} value={input} />
+              <AceEditor width="100%" mode="json" theme="one_dark" onChange={onInputChange} value={input} />
             </Grid>
             <Grid item xs={12} md={6}>
               <Box>
@@ -227,7 +227,7 @@ export default function App() {
                   <Tab label="JsonPath (dchester)" onClick={() => setTab(TABS.JSONPath)} />
                 </Tabs>
               </Box>
-              <AceEditor width="100%" mode="json" theme="monokai" value={result} />
+              <AceEditor width="100%" mode="json" theme="one_dark" value={result} />
             </Grid>
           </Grid>
         </Box>
