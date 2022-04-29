@@ -2,6 +2,7 @@ import {
   Box,
   Button,
   Checkbox,
+  Collapse,
   Container,
   FormControlLabel,
   FormGroup,
@@ -21,17 +22,17 @@ import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import TextField from '@mui/material/TextField';
-import { Collapse } from '@mui/material';
 import 'ace-builds/src-noconflict/ace';
 import 'ace-builds/src-noconflict/ext-language_tools';
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-one_dark';
-import * as jsonpathly from 'jsonpathly';
-import * as jsonpathPlus from 'jsonpath-plus';
 import * as jsonpath from 'jsonpath';
-
-import { SyntheticEvent, ChangeEvent, useEffect, useState } from 'react';
+import * as jsonpathPlus from 'jsonpath-plus';
+import * as jsonpathly from 'jsonpathly';
+import { ChangeEvent, SyntheticEvent, useEffect, useState } from 'react';
 import AceEditor from 'react-ace';
+
+const logo = require('./logo.png');
 
 const theme = createTheme({
   palette: {
@@ -224,9 +225,12 @@ export default function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Container>
-        <Typography mt={2} variant="h4">
-          JsonPath Evaluator
-        </Typography>
+        <Stack mt={2} spacing={2} alignItems={'center'} direction={'row'}>
+          <img width={60} src={logo} />
+          <Typography mt={2} variant="h4">
+            JsonPath Editor
+          </Typography>
+        </Stack>
         <Stack mt={3}>
           <TextField label="JSON Path" onChange={onJsonPathChange} value={jsonPath} />
         </Stack>
@@ -258,7 +262,7 @@ export default function App() {
         <Grid container component="main" spacing={4}>
           <Grid item xs={12} md={6}>
             <Box my={3}>
-              <Typography variant="h4">Basic Examples</Typography>
+              <Typography variant="h5">Basic Examples</Typography>
               <Typography my={2}>Click on the path to change the editor</Typography>
               <JSONPathTable
                 onClick={(value) => {
@@ -272,7 +276,7 @@ export default function App() {
           </Grid>
           <Grid item xs={12} md={6}>
             <Box my={3}>
-              <Typography variant="h4">Advanced Examples</Typography>
+              <Typography variant="h5">Advanced Examples</Typography>
               <Typography my={2}>Click on the path to change the editor</Typography>
               <JSONPathTable
                 onClick={(value) => {
@@ -288,7 +292,7 @@ export default function App() {
         <Box my={3}>
           <Button onClick={() => setCollapse(!collapse)}>View syntax</Button>
           <Collapse in={!collapse} timeout="auto" unmountOnExit>
-            <Typography my={2} variant="h4">
+            <Typography my={2} variant="h5">
               JsonPath Syntax
             </Typography>
             <JSONPathTable headers={['JSONPath', 'Description']} rows={PATH_ITEMS} />
