@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/jsonpathly-demo/static/css/main.e6c13ad2.css",
-    "main.js": "/jsonpathly-demo/static/js/main.f6f96370.js",
+    "main.js": "/jsonpathly-demo/static/js/main.7f301e4d.js",
     "index.html": "/jsonpathly-demo/index.html",
     "main.e6c13ad2.css.map": "/jsonpathly-demo/static/css/main.e6c13ad2.css.map",
-    "main.f6f96370.js.map": "/jsonpathly-demo/static/js/main.f6f96370.js.map"
+    "main.7f301e4d.js.map": "/jsonpathly-demo/static/js/main.7f301e4d.js.map"
   },
   "entrypoints": [
     "static/css/main.e6c13ad2.css",
-    "static/js/main.f6f96370.js"
+    "static/js/main.7f301e4d.js"
   ]
 }
