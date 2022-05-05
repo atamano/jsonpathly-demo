@@ -97,29 +97,6 @@ const PATH_ITEMS = [
   ['()', 'script expression, using the underlying script engine. (not handled by Jsonpathly for security reasons)'],
 ];
 
-const ADVANCED_EXAMPLES = [
-  ['$..price.sum()', 'Sum of price of all books'],
-  ['$..price.min()', 'min price among all books'],
-  ['$..price.max()', 'Max price among all books'],
-  ['$.store.book[0].keys()', 'Object keys'],
-  ['$..book[*][author, price]', 'Return authors and prices form books'],
-  ['$..price.append(123)', 'Appends 123 to price results'],
-  [
-    `$..book[*].concat(  {
-      "category": "fiction",
-      "author": "JK Rowling",
-      "title": "Harry Potter",
-      "isbn": "1-495-10395-9",
-      "price": 32.99
-    })`,
-    'Concat book in books',
-  ],
-  [
-    '$..book[?((@.price + 2 + 2 * (2 + 1) > $.expensive * 3) || @.category == "reference" )]',
-    'Operations and comparisons within filters',
-  ],
-];
-
 const EXAMPLES = [
   ['$.store.book[*].author', 'The authors of all books'],
   ['$..author', 'All authors'],
@@ -181,7 +158,7 @@ export default function App() {
   const [tab, setTab] = useState(TABS.JSONPathly);
   const [result, setResult] = useState('');
   const [input, setInput] = useState(JSON.stringify(DEFAULT_INPUT, null, 2));
-  const [jsonPath, setJsonPath] = useState(`$..book[?(@.price <= $['expensive'])]`);
+  const [jsonPath, setJsonPath] = useState(`$.store.book[*].author`);
 
   const onInputChange = (text: string) => {
     setInput(text);
@@ -260,7 +237,7 @@ export default function App() {
           </Grid>
         </Box>
         <Grid container component="main" spacing={4}>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12}>
             <Box my={3}>
               <Typography variant="h5">Basic Examples</Typography>
               <Typography my={2}>Click on the path to change the editor</Typography>
@@ -271,20 +248,6 @@ export default function App() {
                 }}
                 headers={['JSONPath', 'Description']}
                 rows={EXAMPLES}
-              />
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Box my={3}>
-              <Typography variant="h5">Advanced Examples</Typography>
-              <Typography my={2}>Click on the path to change the editor</Typography>
-              <JSONPathTable
-                onClick={(value) => {
-                  setJsonPath(value);
-                  window.scrollTo(0, 0);
-                }}
-                headers={['JSONPath', 'Description']}
-                rows={ADVANCED_EXAMPLES}
               />
             </Box>
           </Grid>
