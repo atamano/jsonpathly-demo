@@ -1,14 +1,14 @@
 {
   "files": {
     "main.css": "/jsonpathly-demo/static/css/main.e6c13ad2.css",
-    "main.js": "/jsonpathly-demo/static/js/main.294541f5.js",
+    "main.js": "/jsonpathly-demo/static/js/main.b4db04b0.js",
     "static/media/logo.png": "/jsonpathly-demo/static/media/logo.cb8f8ed8e65c7682ad5d.png",
     "index.html": "/jsonpathly-demo/index.html",
     "main.e6c13ad2.css.map": "/jsonpathly-demo/static/css/main.e6c13ad2.css.map",
-    "main.294541f5.js.map": "/jsonpathly-demo/static/js/main.294541f5.js.map"
+    "main.b4db04b0.js.map": "/jsonpathly-demo/static/js/main.b4db04b0.js.map"
   },
   "entrypoints": [
     "static/css/main.e6c13ad2.css",
-    "static/js/main.294541f5.js"
+    "static/js/main.b4db04b0.js"
   ]
 }
