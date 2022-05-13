@@ -7,7 +7,7 @@
     "ace-builds": "^1.4.14",
     "jsonpath": "^1.1.1",
     "jsonpath-plus": "^6.0.1",
-    "jsonpathly": "^1.5.0",
+    "jsonpathly": "^1.7.3",
     "react": "^18.0.0",
     "react-ace": "^10.0.0",
     "react-dom": "^18.0.0"
