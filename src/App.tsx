@@ -32,7 +32,7 @@ import * as jsonpathly from 'jsonpathly';
 import { ChangeEvent, SyntheticEvent, useEffect, useState } from 'react';
 import AceEditor from 'react-ace';
 
-const logo = require('./logo.png');
+import logo from './logo.png';
 
 const theme = createTheme({
   palette: {
