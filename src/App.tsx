@@ -1,12 +1,16 @@
 import {
+  Alert,
   Box,
   Button,
   Checkbox,
+  Chip,
   Collapse,
   Container,
   FormControlLabel,
-  FormGroup,
+  Grid,
+  Link,
   Paper,
+  Stack,
   Tab,
   Table,
   TableBody,
@@ -15,21 +19,21 @@ import {
   TableHead,
   TableRow,
   Tabs,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
-import Grid from '@mui/material/Grid';
-import Stack from '@mui/material/Stack';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import TextField from '@mui/material/TextField';
 import 'ace-builds/src-noconflict/ace';
 import 'ace-builds/src-noconflict/ext-language_tools';
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-one_dark';
 import * as jsonpath from 'jsonpath';
-import * as jsonpathPlus from 'jsonpath-plus';
+import { JSONPath } from 'jsonpath-plus';
 import * as jsonpathly from 'jsonpathly';
-import { ChangeEvent, SyntheticEvent, useEffect, useState } from 'react';
+import { type KeyboardEvent, useEffect, useMemo, useState } from 'react';
 import AceEditor from 'react-ace';
 
 import logo from './logo.png';
@@ -39,6 +43,8 @@ const theme = createTheme({
     mode: 'dark',
   },
 });
+
+const DEFAULT_PATH = '$.store.book[*].author';
 
 const DEFAULT_INPUT = {
   store: {
@@ -79,22 +85,22 @@ const DEFAULT_INPUT = {
 };
 
 const PATH_ITEMS = [
-  ['$', 'the root object/element'],
-  ['@', 'the current object/element'],
-  ['.', 'or []	child operator'],
-  ['..', 'recursive descent. JSONPath borrows this syntax from E4X.'],
-  ['*', 'wildcard. All objects/elements regardless their names.'],
+  ['$', 'The root object/element'],
+  ['@', 'The current object/element'],
+  ['. or []', 'Child operator'],
+  ['..', 'Recursive descent. JSONPath borrows this syntax from E4X.'],
+  ['*', 'Wildcard. All objects/elements regardless of their names.'],
   [
     '[]',
-    'subscript operator. XPath uses it to iterate over element collections and for predicates. In Javascript and JSON it is the native array operator.',
+    'Subscript operator. XPath uses it to iterate over element collections and for predicates. In JavaScript and JSON it is the native array operator.',
   ],
   [
     '[,]',
-    'Union operator in XPath results in a combination of node sets. JSONPath allows alternate names or array indices as a set.',
+    'Union operator. In XPath it results in a combination of node sets. JSONPath allows alternate names or array indices as a set.',
   ],
-  ['[start:end:step]', 'array slice operator borrowed from ES4.'],
-  ['?()', 'applies a filter (script) expression.'],
-  ['()', 'script expression, using the underlying script engine. (not handled by Jsonpathly for security reasons)'],
+  ['[start:end:step]', 'Array slice operator borrowed from ES4.'],
+  ['?()', 'Applies a filter (script) expression.'],
+  ['()', 'Script expression, using the underlying script engine (not handled by Jsonpathly for security reasons).'],
 ];
 
 const EXAMPLES = [
@@ -108,36 +114,83 @@ const EXAMPLES = [
   ['$..book[:2]', 'All books from index 0 (inclusive) until index 2 (exclusive)'],
   ['$..book[1:2]', 'All books from index 1 (inclusive) until index 2 (exclusive)'],
   ['$..book[-2:]', 'Last two books'],
-  ['$..book[2:]', 'Book number two from tail'],
+  ['$..book[2:]', 'All books from index 2 (inclusive) to the end'],
   ['$..book[?(@.isbn)]', 'All books with an ISBN number'],
   ['$.store.book[?(@.price < 10)]', 'All books in store cheaper than 10'],
   [`$..book[?(@.price <= $['expensive'])]`, `All books in store that are not 'expensive'`],
   ['$..book[?(@.author =~ /.*REES/i)]', 'All books matching regex (ignore case)'],
-  ['$..*', 'Give me every thing'],
+  ['$..*', 'Give me everything'],
 ];
 
-const JSONPathTable = ({
-  onClick,
-  headers,
-  rows,
-}: {
-  onClick?: (t: string) => void;
-  headers: string[];
-  rows: string[][];
-}) => (
+const LIBRARIES = [
+  { id: 'jsonpathly', label: 'JsonPathly', url: 'https://github.com/atamano/jsonpathly' },
+  { id: 'jsonpath-plus', label: 'JsonPath Plus', url: 'https://github.com/JSONPath-Plus/JSONPath' },
+  { id: 'jsonpath', label: 'JsonPath (dchester)', url: 'https://github.com/dchester/jsonpath' },
+] as const;
+
+type LibraryId = (typeof LIBRARIES)[number]['id'];
+type OutputMode = 'values' | 'paths';
+
+type Failure = { ok: false; error: string };
+type Evaluation = { ok: true; value: unknown } | Failure;
+type Result = { ok: true; text: string; matches: number } | Failure;
+
+const errorMessage = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
+function evaluate(library: LibraryId, json: unknown, path: string, mode: OutputMode, alwaysArray: boolean): unknown {
+  switch (library) {
+    case 'jsonpathly':
+      return mode === 'paths'
+        ? jsonpathly.paths(json, path)
+        : jsonpathly.query(json, path, { returnArray: alwaysArray });
+    case 'jsonpath-plus':
+      return JSONPath({
+        path,
+        json: json as object,
+        wrap: mode === 'paths' ? true : alwaysArray,
+        resultType: mode === 'paths' ? 'path' : 'value',
+        // Never fall back to native eval: paths can come from a shared link.
+        eval: 'safe',
+      });
+    case 'jsonpath':
+      return mode === 'paths'
+        ? jsonpath.paths(json, path).map((p) => jsonpath.stringify(p))
+        : jsonpath.query(json, path);
+  }
+}
+
+const readPathFromUrl = () => new URLSearchParams(window.location.search).get('path');
+
+const JSONPathTable = ({ onSelect, rows }: { onSelect?: (path: string) => void; rows: string[][] }) => (
   <TableContainer component={Paper}>
-    <Table>
+    <Table size="small">
       <TableHead>
         <TableRow>
-          {headers.map((header) => (
-            <TableCell key={header}>{header}</TableCell>
-          ))}
+          <TableCell>JSONPath</TableCell>
+          <TableCell>Description</TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
         {rows.map(([path, desc]) => (
-          <TableRow onClick={onClick ? () => onClick(path) : undefined} key={path}>
-            <TableCell style={onClick ? { cursor: 'pointer', color: '#58a6ff' } : undefined}> {path}</TableCell>
+          <TableRow
+            key={path}
+            hover={!!onSelect}
+            {...(onSelect && {
+              role: 'button',
+              tabIndex: 0,
+              onClick: () => onSelect(path),
+              onKeyDown: (e: KeyboardEvent) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelect(path);
+                }
+              },
+              sx: { cursor: 'pointer' },
+            })}
+          >
+            <TableCell sx={{ fontFamily: 'monospace', whiteSpace: 'nowrap', color: onSelect ? 'primary.light' : undefined }}>
+              {path}
+            </TableCell>
             <TableCell>{desc}</TableCell>
           </TableRow>
         ))}
@@ -146,119 +199,197 @@ const JSONPathTable = ({
   </TableContainer>
 );
 
-enum TABS {
-  JSONPathly,
-  JSONPathPlus,
-  JSONPath,
-}
+const EDITOR_HEIGHT = '500px';
 
 export default function App() {
-  const [collapse, setCollapse] = useState(true);
-  const [isArray, setIsArray] = useState(true);
-  const [tab, setTab] = useState(TABS.JSONPathly);
-  const [result, setResult] = useState('');
-  const [input, setInput] = useState(JSON.stringify(DEFAULT_INPUT, null, 2));
-  const [jsonPath, setJsonPath] = useState(`$.store.book[*].author`);
+  const [showSyntax, setShowSyntax] = useState(false);
+  const [alwaysArray, setAlwaysArray] = useState(true);
+  const [mode, setMode] = useState<OutputMode>('values');
+  const [library, setLibrary] = useState<LibraryId>('jsonpathly');
+  const [input, setInput] = useState(() => JSON.stringify(DEFAULT_INPUT, null, 2));
+  const [urlPath] = useState(readPathFromUrl);
+  const [jsonPath, setJsonPath] = useState(urlPath ?? DEFAULT_PATH);
+  // A path from a shared link is untrusted until the user edits it: only Jsonpathly
+  // (which never evaluates scripts) runs it. The other engines evaluate filters with eval-like sandboxes.
+  const [pathTrusted, setPathTrusted] = useState(urlPath === null);
 
-  const onInputChange = (text: string) => {
-    setInput(text);
+  const updatePath = (path: string) => {
+    setJsonPath(path);
+    setPathTrusted(true);
   };
 
-  const onJsonPathChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setJsonPath(event.target.value);
-  };
-
+  // Keep the current path in the URL so it can be shared.
   useEffect(() => {
-    try {
-      const parsedInput = JSON.parse(input);
-      switch (tab) {
-        case TABS.JSONPathly: {
-          const res = jsonpathly.query(parsedInput, jsonPath, { returnArray: isArray });
-          setResult(JSON.stringify(res, null, 2));
-          break;
-        }
-        case TABS.JSONPath: {
-          const res = jsonpath.query(parsedInput, jsonPath);
-          setResult(JSON.stringify(res, null, 2));
-          break;
-        }
-        case TABS.JSONPathPlus: {
-          const res = jsonpathPlus.JSONPath({ path: jsonPath, json: parsedInput, wrap: isArray });
-          setResult(JSON.stringify(res, null, 2));
-          break;
-        }
-      }
-    } catch (e) {
-      setResult('');
-      console.log(e);
-    }
-  }, [tab, isArray, input, jsonPath]);
+    const url = new URL(window.location.href);
+    if (jsonPath === DEFAULT_PATH) url.searchParams.delete('path');
+    else url.searchParams.set('path', jsonPath);
+    window.history.replaceState(null, '', url);
+  }, [jsonPath]);
 
-  const onTabChange = (_event: SyntheticEvent, newValue: number) => {
-    setTab(newValue);
+  const parsedInput = useMemo<Evaluation>(() => {
+    try {
+      return { ok: true, value: JSON.parse(input) };
+    } catch (e) {
+      return { ok: false, error: `Invalid JSON: ${errorMessage(e)}` };
+    }
+  }, [input]);
+
+  const result = useMemo<Result>(() => {
+    if (!parsedInput.ok) return parsedInput;
+    if (!jsonPath.trim()) return { ok: false, error: 'Enter a JSONPath expression' };
+    if (!pathTrusted && library !== 'jsonpathly') {
+      return { ok: false, error: 'This path comes from a shared link. Edit it to run it with this library.' };
+    }
+    // Each run gets its own copy: filter expressions can mutate the document (e.g. `@.sort()`).
+    const run = (runMode: OutputMode, runAlwaysArray: boolean) =>
+      evaluate(library, structuredClone(parsedInput.value), jsonPath, runMode, runAlwaysArray);
+    try {
+      const value = run(mode, alwaysArray);
+      // An unwrapped result can't be counted from its shape (a single match may itself be an array).
+      const alwaysWrapped = mode === 'paths' || alwaysArray || library === 'jsonpath';
+      const matches = alwaysWrapped ? (value as unknown[]).length : (run('values', true) as unknown[]).length;
+      // Serialize here so that a circular result shows an error instead of crashing the render.
+      return { ok: true, text: JSON.stringify(value, null, 2) ?? 'undefined', matches };
+    } catch (e) {
+      return { ok: false, error: errorMessage(e) };
+    }
+  }, [parsedInput, library, jsonPath, pathTrusted, mode, alwaysArray]);
+
+  const resultText = result.ok ? result.text : '';
+  const matchCount = result.ok ? result.matches : 0;
+  const currentLibrary = LIBRARIES.find((l) => l.id === library)!;
+
+  const formatInput = () => {
+    if (parsedInput.ok) setInput(JSON.stringify(parsedInput.value, null, 2));
   };
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container>
-        <Stack mt={2} spacing={2} alignItems={'center'} direction={'row'}>
-          <img width={60} src={logo} />
-          <Typography mt={2} variant="h4">
-            JsonPath Editor
-          </Typography>
+      <Container sx={{ pb: 6 }}>
+        <Stack direction="row" spacing={2} sx={{ mt: 3, alignItems: 'center' }}>
+          <img width={56} height={56} src={logo} alt="Jsonpathly logo" />
+          <Box>
+            <Typography variant="h4" component="h1">
+              JSONPath Editor
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Test JSONPath expressions with{' '}
+              <Link href="https://github.com/atamano/jsonpathly" target="_blank" rel="noopener">
+                Jsonpathly
+              </Link>{' '}
+              and compare with other libraries
+            </Typography>
+          </Box>
         </Stack>
-        <Stack mt={3}>
-          <TextField label="JSON Path" onChange={onJsonPathChange} value={jsonPath} />
-        </Stack>
-        <Box my={1}>
-          <Grid container component="main" spacing={4}>
-            <Grid item xs={12} md={6}>
-              <Box height={45}>
-                <FormGroup>
-                  <FormControlLabel
-                    control={<Checkbox checked={isArray} onClick={() => setIsArray(!isArray)} />}
-                    label="Always use array (Jsonpathly + JSonpath plus)"
-                  />
-                </FormGroup>
-              </Box>
-              <AceEditor width="100%" mode="json" theme="one_dark" onChange={onInputChange} value={input} />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Box>
-                <Tabs value={tab} onChange={onTabChange} aria-label="basic tabs example">
-                  <Tab label="JsonPathly" onClick={() => setTab(TABS.JSONPathly)} />
-                  <Tab label="JsonPath Plus" onClick={() => setTab(TABS.JSONPathPlus)} />
-                  <Tab label="JsonPath (dchester)" onClick={() => setTab(TABS.JSONPath)} />
-                </Tabs>
-              </Box>
-              <AceEditor width="100%" mode="json" theme="one_dark" value={result} />
-            </Grid>
+
+        <TextField
+          fullWidth
+          sx={{ mt: 3 }}
+          label="JSONPath"
+          value={jsonPath}
+          onChange={(e) => updatePath(e.target.value)}
+          error={parsedInput.ok && !result.ok}
+          slotProps={{ htmlInput: { spellCheck: false, style: { fontFamily: 'monospace' } } }}
+        />
+
+        <Grid container spacing={4} sx={{ mt: 2 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Stack direction="row" sx={{ height: 48, alignItems: 'center', justifyContent: 'space-between' }}>
+              <Typography variant="subtitle1">Input JSON</Typography>
+              <Button size="small" onClick={formatInput} disabled={!parsedInput.ok}>
+                Format
+              </Button>
+            </Stack>
+            <AceEditor
+              width="100%"
+              height={EDITOR_HEIGHT}
+              mode="json"
+              theme="one_dark"
+              name="input-editor"
+              onChange={setInput}
+              value={input}
+              tabSize={2}
+              setOptions={{ useWorker: false }}
+            />
           </Grid>
-        </Box>
-        <Grid container component="main" spacing={4}>
-          <Grid item xs={12}>
-            <Box my={3}>
-              <Typography variant="h5">Basic Examples</Typography>
-              <Typography my={2}>Click on the path to change the editor</Typography>
-              <JSONPathTable
-                onClick={(value) => {
-                  setJsonPath(value);
-                  window.scrollTo(0, 0);
-                }}
-                headers={['JSONPath', 'Description']}
-                rows={EXAMPLES}
-              />
-            </Box>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Tabs value={library} onChange={(_e, value: LibraryId) => setLibrary(value)} variant="scrollable">
+              {LIBRARIES.map((lib) => (
+                <Tab key={lib.id} value={lib.id} label={lib.label} />
+              ))}
+            </Tabs>
+            <AceEditor
+              width="100%"
+              height={EDITOR_HEIGHT}
+              mode="json"
+              theme="one_dark"
+              name="result-editor"
+              value={resultText}
+              readOnly
+              showPrintMargin={false}
+              setOptions={{ useWorker: false }}
+            />
           </Grid>
         </Grid>
-        <Box my={3}>
-          <Button onClick={() => setCollapse(!collapse)}>View syntax</Button>
-          <Collapse in={!collapse} timeout="auto" unmountOnExit>
-            <Typography my={2} variant="h5">
-              JsonPath Syntax
+
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2, alignItems: { sm: 'center' } }}>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={mode}
+            onChange={(_e, value: OutputMode | null) => value && setMode(value)}
+          >
+            <ToggleButton value="values">Values</ToggleButton>
+            <ToggleButton value="paths">Paths</ToggleButton>
+          </ToggleButtonGroup>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={alwaysArray}
+                onChange={(e) => setAlwaysArray(e.target.checked)}
+                disabled={mode === 'paths' || library === 'jsonpath'}
+              />
+            }
+            label="Always return an array"
+          />
+          <Box sx={{ flexGrow: 1 }} />
+          {result.ok && <Chip label={`${matchCount} match${matchCount === 1 ? '' : 'es'}`} variant="outlined" />}
+          <Link href={currentLibrary.url} target="_blank" rel="noopener" variant="body2">
+            {currentLibrary.label} on GitHub
+          </Link>
+        </Stack>
+
+        {!result.ok && (
+          <Alert severity="error" sx={{ mt: 2, fontFamily: 'monospace' }}>
+            {result.error}
+          </Alert>
+        )}
+
+        <Box component="section" sx={{ mt: 5 }}>
+          <Typography variant="h5" component="h2">
+            Examples
+          </Typography>
+          <Typography color="text.secondary" sx={{ my: 1 }}>
+            Click a path to try it
+          </Typography>
+          <JSONPathTable
+            rows={EXAMPLES}
+            onSelect={(path) => {
+              updatePath(path);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </Box>
+
+        <Box component="section" sx={{ mt: 4 }}>
+          <Button onClick={() => setShowSyntax((s) => !s)}>{showSyntax ? 'Hide syntax' : 'View syntax'}</Button>
+          <Collapse in={showSyntax} timeout="auto" unmountOnExit>
+            <Typography variant="h5" component="h2" sx={{ my: 2 }}>
+              JSONPath Syntax
             </Typography>
-            <JSONPathTable headers={['JSONPath', 'Description']} rows={PATH_ITEMS} />
+            <JSONPathTable rows={PATH_ITEMS} />
           </Collapse>
         </Box>
       </Container>
